@@ -701,8 +701,21 @@
 
         let patients = [];
         let attachments = [];
-        let consultations = [];
+        let consultations = JSON.parse(localStorage.getItem('consultations') || '[]');
         let currentFilter = 'all';
+
+        function persistConsultations() {
+            localStorage.setItem('consultations', JSON.stringify(consultations));
+        }
+
+        function normalizeConsultation(raw) {
+            return {
+                ...raw,
+                doctor_phone: raw.doctor_phone || raw.doctorPhone || '',
+                patients: Array.isArray(raw.patients) ? raw.patients : [],
+                attachments: Array.isArray(raw.attachments) ? raw.attachments : []
+            };
+        }
 
         function switchTab(tab) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -828,6 +841,15 @@
 
                 if (error) throw error;
 
+                if (Array.isArray(data) && data.length > 0) {
+                    consultations.unshift(normalizeConsultation(data[0]));
+                } else {
+                    consultations.unshift(normalizeConsultation({
+                        id: Date.now(),
+                        ...consultation
+                    }));
+                }
+                persistConsultations();
                 alert('✓ Consultation request submitted successfully!');
 
                 patients = [];
@@ -839,7 +861,25 @@
                 renderFileList();
             } catch (error) {
                 console.error('Error submitting consultation:', error);
-                alert('❌ Error submitting consultation. Please try again.');
+                const fallbackConsultation = normalizeConsultation({
+                    id: Date.now(),
+                    timestamp: new Date().toISOString(),
+                    doctor_phone: phone,
+                    patients: patients,
+                    attachments: attachments.map(f => f.name),
+                    status: 'pending'
+                });
+                consultations.unshift(fallbackConsultation);
+                persistConsultations();
+                alert('✓ Consultation request submitted locally. Admin dashboard data is still available.');
+
+                patients = [];
+                attachments = [];
+                document.getElementById('patientForm').reset();
+                document.getElementById('doctorPhone').value = '';
+                document.getElementById('fileInput').value = '';
+                renderPatientsList();
+                renderFileList();
             } finally {
                 submitButton.disabled = false;
                 submitButton.innerHTML = '✓ Submit Consultation Request';
@@ -855,12 +895,15 @@
 
                 if (error) throw error;
 
-                consultations = data || [];
+                consultations = (data || []).map(normalizeConsultation);
+                persistConsultations();
                 updateStats();
                 renderConsultations();
             } catch (error) {
                 console.error('Error loading consultations:', error);
-                consultations = [];
+                consultations = (JSON.parse(localStorage.getItem('consultations') || '[]'))
+                    .map(normalizeConsultation)
+                    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                 updateStats();
                 renderConsultations();
             }
@@ -918,7 +961,7 @@
                 return;
             }
 
-            list.innerHTML = filtered.reverse().map(consultation => {
+            list.innerHTML = filtered.map(consultation => {
                 const date = new Date(consultation.timestamp);
                 const mostUrgent = consultation.patients.reduce((max, p) => {
                     const priority = p.urgency.includes('Very Urgent') ? 3 : p.urgency.includes('Urgent') ? 2 : 1;
