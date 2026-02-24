@@ -693,17 +693,38 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         const SUPABASE_URL = 'https://efmibiyjngmvndzdfgm.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmbWliaXlqbmdtdm5kemRmZ20iLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczNTUwMjkyOSwiZXhwIjoyMDUxMDc4OTI5fQ.sb_publishable_VvFXxbRto9cyUI3Ni1EMxw_H9Bm2IgE';
-        const supabase = window.supabase && typeof window.supabase.createClient === 'function'
-            ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
-            : null;
+        const SUPABASE_KEY = 'sb_publishable_VvFXxbRto9cyUI3Ni1EMxw_H9Bm2IgE';
+        let supabase = null;
+
+        try {
+            if (window.supabase && typeof window.supabase.createClient === 'function' && SUPABASE_URL && SUPABASE_KEY) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            }
+        } catch (error) {
+            // Keep app functional in local mode if Supabase init fails.
+            console.error('Supabase initialization failed:', error);
+            supabase = null;
+        }
+
+        function safeLoadConsultationsFromStorage() {
+            try {
+                const raw = localStorage.getItem('consultations');
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (error) {
+                console.error('Invalid localStorage consultations data, resetting:', error);
+                localStorage.removeItem('consultations');
+                return [];
+            }
+        }
 
         let patients = [];
         let attachments = [];
-        let consultations = JSON.parse(localStorage.getItem('consultations') || '[]');
+        let consultations = safeLoadConsultationsFromStorage();
         let currentFilter = 'all';
 
         function persistConsultations() {
@@ -910,7 +931,7 @@
                 renderConsultations();
             } catch (error) {
                 console.error('Error loading consultations:', error);
-                consultations = (JSON.parse(localStorage.getItem('consultations') || '[]'))
+                consultations = (safeLoadConsultationsFromStorage())
                     .map(normalizeConsultation)
                     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                 updateStats();
@@ -937,6 +958,7 @@
         }
 
         function getUrgencyClass(urgency) {
+            if (!urgency || typeof urgency !== 'string') return 'elective';
             if (urgency.includes('Very Urgent')) return 'very-urgent';
             if (urgency.includes('Urgent')) return 'urgent';
             return 'elective';
@@ -975,7 +997,7 @@
                 const mostUrgent = consultation.patients.reduce((max, p) => {
                     const priority = p.urgency.includes('Very Urgent') ? 3 : p.urgency.includes('Urgent') ? 2 : 1;
                     return priority > (max.priority || 0) ? { urgency: p.urgency, priority } : max;
-                }, {});
+                }, { urgency: 'Elective (24-48h)', priority: 1 });
 
                 return `
                     <div class="consultation-card" onclick="viewDetails(${consultation.id})">
@@ -1050,3 +1072,4 @@
     </script>
 </body>
 </html>
+
