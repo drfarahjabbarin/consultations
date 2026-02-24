@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dr. Farah Jabbarin - Consultation App</title>
+    <style>
+        :root {
+            --color-primary: #0284c7;
+            --color-primary-hover: #0369a1;
+            --color-success: #059669;
+            --color-warning: #f59e0b;
+            --color-danger: #dc2626;
+            --color-bg: #f8fafc;
+            --color-surface: #ffffff;
+            --color-text: #0f172a;
+            --color-text-secondary: #475569;
+            --color-border: #e2e8f0;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .header {
+            background: var(--color-primary);
+            color: white;
+            padding: 24px 16px;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.95;
+        }
+
+        .tab-nav {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            background: var(--color-surface);
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            color: var(--color-text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .card {
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--color-border);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--color-text);
+            margin-bottom: 6px;
+        }
+
+        input[type="text"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+            background: var(--color-surface);
+        }
+
+        input[type="text"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .urgency-select {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .urgency-option {
+            position: relative;
+        }
+
+        .urgency-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+        }
+
+        .urgency-label {
+            display: block;
+            padding: 12px;
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .urgency-option input[type="radio"]:checked + .urgency-label {
+            border-color: var(--color-primary);
+            background: rgba(2, 132, 199, 0.1);
+            color: var(--color-primary);
+        }
+
+        .urgency-label.elective {
+            border-color: var(--color-success);
+        }
+
+        .urgency-option input[type="radio"]:checked + .urgency-label.elective {
+            border-color: var(--color-success);
+            background: rgba(5, 150, 105, 0.1);
+            color: var(--color-success);
+        }
+
+        .urgency-label.urgent {
+            border-color: var(--color-warning);
+        }
+
+        .urgency-option input[type="radio"]:checked + .urgency-label.urgent {
+            border-color: var(--color-warning);
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--color-warning);
+        }
+
+        .urgency-label.very-urgent {
+            border-color: var(--color-danger);
+        }
+
+        .urgency-option input[type="radio"]:checked + .urgency-label.very-urgent {
+            border-color: var(--color-danger);
+            background: rgba(220, 38, 38, 0.1);
+            color: var(--color-danger);
+        }
+
+        .file-upload {
+            border: 2px dashed var(--color-border);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .file-upload:hover {
+            border-color: var(--color-primary);
+            background: rgba(2, 132, 199, 0.05);
+        }
+
+        .file-upload input[type="file"] {
+            display: none;
+        }
+
+        .file-list {
+            margin-top: 12px;
+            font-size: 13px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: var(--color-bg);
+            border-radius: 6px;
+            margin-top: 6px;
+        }
+
+        .file-item button {
+            background: none;
+            border: none;
+            color: var(--color-danger);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0 4px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--color-primary-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--color-primary);
+            border: 2px solid var(--color-primary);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(2, 132, 199, 0.1);
+        }
+
+        .btn-success {
+            background: var(--color-success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #047857;
+        }
+
+        .btn-block {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .patient-item {
+            background: var(--color-bg);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 4px solid var(--color-primary);
+        }
+
+        .patient-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .patient-item-header h4 {
+            font-size: 15px;
+            color: var(--color-text);
+        }
+
+        .patient-item-header button {
+            background: none;
+            border: none;
+            color: var(--color-danger);
+            cursor: pointer;
+            font-size: 20px;
+            padding: 0 4px;
+        }
+
+        .patient-item-info {
+            font-size: 13px;
+            color: var(--color-text-secondary);
+            line-height: 1.6;
+        }
+
+        .consultation-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .consultation-card {
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--color-border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .consultation-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+
+        .consultation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .consultation-header h3 {
+            font-size: 16px;
+            color: var(--color-text);
+        }
+
+        .urgency-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .urgency-badge.elective {
+            background: rgba(5, 150, 105, 0.2);
+            color: var(--color-success);
+        }
+
+        .urgency-badge.urgent {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--color-warning);
+        }
+
+        .urgency-badge.very-urgent {
+            background: rgba(220, 38, 38, 0.2);
+            color: var(--color-danger);
+        }
+
+        .consultation-info {
+            font-size: 13px;
+            color: var(--color-text-secondary);
+            line-height: 1.8;
+        }
+
+        .consultation-info strong {
+            color: var(--color-text);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--color-text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--color-surface);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--color-text-secondary);
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .filter-chip {
+            padding: 8px 16px;
+            border: 1px solid var(--color-border);
+            border-radius: 20px;
+            background: var(--color-surface);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-chip.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--color-surface);
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--color-border);
+        }
+
+        .stat-card .number {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        .stat-card .label {
+            font-size: 12px;
+            color: var(--color-text-secondary);
+            margin-top: 4px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 12px;
+            }
+
+            .header {
+                padding: 20px 12px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .card {
+                padding: 16px;
+            }
+
+            .urgency-select {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        [dir="rtl"] {
+            text-align: right;
+            direction: rtl;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Dr. Farah Jabbarin Consultation App</h1>
+        <p dir="rtl">هذا التطبيق يسهل التواصل بين الزملاء أثناء العمل وطلب الاستشارة</p>
+    </div>
+
+    <div class="container">
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('request')">📋 Request Consultation</button>
+            <button class="tab-btn" onclick="switchTab('admin')">⚡ Admin Dashboard</button>
+        </div>
+
+        <!-- Request Consultation Tab -->
+        <div id="requestTab" class="tab-content active">
+            <div class="card">
+                <h3 style="margin-bottom: 16px; font-size: 18px;" dir="rtl">معلومات المريض</h3>
+                
+                <div id="patientsList"></div>
+
+                <form id="patientForm">
+                    <div class="form-group">
+                        <label>Patient Name</label>
+                        <input type="text" id="patientName" placeholder="Enter patient name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Location (Ward, ICU, etc.)</label>
+                        <input type="text" id="patientLocation" placeholder="Where is the patient?" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Medical Condition / Notes</label>
+                        <textarea id="patientNotes" placeholder="Describe the medical condition" rows="4" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Level of Urgency</label>
+                        <div class="urgency-select">
+                            <div class="urgency-option">
+                                <input type="radio" name="urgency" id="elective" value="Elective (24-48h)" required>
+                                <label for="elective" class="urgency-label elective">
+                                    Elective<br><small>24-48 hours</small>
+                                </label>
+                            </div>
+                            <div class="urgency-option">
+                                <input type="radio" name="urgency" id="urgent" value="Urgent (<24h)">
+                                <label for="urgent" class="urgency-label urgent">
+                                    Urgent<br><small>&lt;24 hours</small>
+                                </label>
+                            </div>
+                            <div class="urgency-option">
+                                <input type="radio" name="urgency" id="veryUrgent" value="Very Urgent (ASAP)">
+                                <label for="veryUrgent" class="urgency-label very-urgent">
+                                    Very Urgent<br><small>ASAP</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-secondary btn-block" onclick="addPatient()">
+                        ➕ Add Another Patient
+                    </button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-bottom: 16px; font-size: 18px;" dir="rtl">معلومات التواصل مع الطبيب</h3>
+                
+                <div class="form-group">
+                    <label>Doctor Phone Number</label>
+                    <input type="text" id="doctorPhone" placeholder="Please submit your phone number" required>
+                </div>
+
+                <div class="form-group">
+                    <label dir="rtl">ارفاق تقارير المريض أو صورة التخطيط (إن وجد)</label>
+                    <div class="file-upload" onclick="document.getElementById('fileInput').click()">
+                        <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx" onchange="handleFileSelect(event)">
+                        <p>📎 Click to upload attachments</p>
+                        <small style="color: var(--color-text-secondary);">Images, PDF, DOC files</small>
+                    </div>
+                    <div id="fileList" class="file-list"></div>
+                </div>
+
+                <button class="btn btn-success btn-block" onclick="submitConsultation()">
+                    ✓ Submit Consultation Request
+                </button>
+
+                <p style="text-align: center; margin-top: 16px; color: var(--color-text-secondary);" dir="rtl">
+                    نشكر ثقتكم
+                </p>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard Tab -->
+        <div id="adminTab" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="number" id="totalCount">0</div>
+                    <div class="label">Total Requests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="electiveCount">0</div>
+                    <div class="label">Elective</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="urgentCount">0</div>
+                    <div class="label">Urgent</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="veryUrgentCount">0</div>
+                    <div class="label">Very Urgent</div>
+                </div>
+            </div>
+
+            <div class="filter-bar">
+                <div class="filter-chip active" data-filter="all" onclick="filterConsultations('all')">All</div>
+                <div class="filter-chip" data-filter="elective" onclick="filterConsultations('elective')">Elective</div>
+                <div class="filter-chip" data-filter="urgent" onclick="filterConsultations('urgent')">Urgent</div>
+                <div class="filter-chip" data-filter="very-urgent" onclick="filterConsultations('very-urgent')">Very Urgent</div>
+            </div>
+
+            <div id="consultationsList" class="consultation-list"></div>
+        </div>
+    </div>
+
+    <!-- Consultation Detail Modal -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Consultation Details</h2>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://efmibiyjngmvndzdfgm.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmbWliaXlqbmdtdm5kemRmZ20iLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczNTUwMjkyOSwiZXhwIjoyMDUxMDc4OTI5fQ.sb_publishable_VvFXxbRto9cyUI3Ni1EMxw_H9Bm2IgE';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let patients = [];
+        let attachments = [];
+        let consultations = [];
+        let currentFilter = 'all';
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            if (tab === 'request') {
+                document.querySelector('.tab-btn').classList.add('active');
+                document.getElementById('requestTab').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('adminTab').classList.add('active');
+                loadConsultations();
+            }
+        }
+
+        function addPatient() {
+            const name = document.getElementById('patientName').value.trim();
+            const location = document.getElementById('patientLocation').value.trim();
+            const notes = document.getElementById('patientNotes').value.trim();
+            const urgency = document.querySelector('input[name="urgency"]:checked');
+
+            if (!name || !location || !notes || !urgency) {
+                alert('Please fill in all patient information fields');
+                return;
+            }
+
+            patients.push({
+                name,
+                location,
+                notes,
+                urgency: urgency.value
+            });
+
+            document.getElementById('patientForm').reset();
+            renderPatientsList();
+        }
+
+        function renderPatientsList() {
+            const list = document.getElementById('patientsList');
+            
+            if (patients.length === 0) {
+                list.innerHTML = '';
+                return;
+            }
+
+            list.innerHTML = patients.map((patient, index) => `
+                <div class="patient-item">
+                    <div class="patient-item-header">
+                        <h4>Patient ${index + 1}: ${patient.name}</h4>
+                        <button onclick="removePatient(${index})" title="Remove">×</button>
+                    </div>
+                    <div class="patient-item-info">
+                        <strong>Location:</strong> ${patient.location}<br>
+                        <strong>Urgency:</strong> ${patient.urgency}<br>
+                        <strong>Notes:</strong> ${patient.notes}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function removePatient(index) {
+            patients.splice(index, 1);
+            renderPatientsList();
+        }
+
+        function handleFileSelect(event) {
+            const files = Array.from(event.target.files);
+            attachments = [...attachments, ...files];
+            renderFileList();
+        }
+
+        function renderFileList() {
+            const list = document.getElementById('fileList');
+            
+            if (attachments.length === 0) {
+                list.innerHTML = '';
+                return;
+            }
+
+            list.innerHTML = attachments.map((file, index) => `
+                <div class="file-item">
+                    <span>📄 ${file.name} (${(file.size / 1024).toFixed(1)} KB)</span>
+                    <button onclick="removeFile(${index})" title="Remove">×</button>
+                </div>
+            `).join('');
+        }
+
+        function removeFile(index) {
+            attachments.splice(index, 1);
+            renderFileList();
+        }
+
+        async function submitConsultation() {
+            const phone = document.getElementById('doctorPhone').value.trim();
+
+            if (!phone) {
+                alert('Please enter your phone number');
+                return;
+            }
+
+            if (patients.length === 0) {
+                alert('Please add at least one patient');
+                return;
+            }
+
+            const submitButton = document.querySelector('.btn-success');
+            submitButton.disabled = true;
+            submitButton.textContent = '⏳ Submitting...';
+
+            try {
+                const consultation = {
+                    timestamp: new Date().toISOString(),
+                    doctor_phone: phone,
+                    patients: patients,
+                    attachments: attachments.map(f => f.name),
+                    status: 'pending'
+                };
+
+                const { data, error } = await supabase
+                    .from('consultations')
+                    .insert([consultation])
+                    .select();
+
+                if (error) throw error;
+
+                alert('✓ Consultation request submitted successfully!');
+
+                patients = [];
+                attachments = [];
+                document.getElementById('patientForm').reset();
+                document.getElementById('doctorPhone').value = '';
+                document.getElementById('fileInput').value = '';
+                renderPatientsList();
+                renderFileList();
+            } catch (error) {
+                console.error('Error submitting consultation:', error);
+                alert('❌ Error submitting consultation. Please try again.');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.innerHTML = '✓ Submit Consultation Request';
+            }
+        }
+
+        async function loadConsultations() {
+            try {
+                const { data, error } = await supabase
+                    .from('consultations')
+                    .select('*')
+                    .order('timestamp', { ascending: false });
+
+                if (error) throw error;
+
+                consultations = data || [];
+                updateStats();
+                renderConsultations();
+            } catch (error) {
+                console.error('Error loading consultations:', error);
+                consultations = [];
+                updateStats();
+                renderConsultations();
+            }
+        }
+
+        function updateStats() {
+            const total = consultations.length;
+            const elective = consultations.filter(c => 
+                c.patients.some(p => p.urgency.includes('Elective'))
+            ).length;
+            const urgent = consultations.filter(c => 
+                c.patients.some(p => p.urgency.includes('Urgent') && !p.urgency.includes('Very'))
+            ).length;
+            const veryUrgent = consultations.filter(c => 
+                c.patients.some(p => p.urgency.includes('Very Urgent'))
+            ).length;
+
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('electiveCount').textContent = elective;
+            document.getElementById('urgentCount').textContent = urgent;
+            document.getElementById('veryUrgentCount').textContent = veryUrgent;
+        }
+
+        function getUrgencyClass(urgency) {
+            if (urgency.includes('Very Urgent')) return 'very-urgent';
+            if (urgency.includes('Urgent')) return 'urgent';
+            return 'elective';
+        }
+
+        function filterConsultations(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-chip').forEach(chip => {
+                chip.classList.toggle('active', chip.dataset.filter === filter);
+            });
+            renderConsultations();
+        }
+
+        function renderConsultations() {
+            const list = document.getElementById('consultationsList');
+            
+            let filtered = consultations;
+            if (currentFilter !== 'all') {
+                filtered = consultations.filter(c => 
+                    c.patients.some(p => getUrgencyClass(p.urgency) === currentFilter)
+                );
+            }
+
+            if (filtered.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <p>No consultation requests found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = filtered.reverse().map(consultation => {
+                const date = new Date(consultation.timestamp);
+                const mostUrgent = consultation.patients.reduce((max, p) => {
+                    const priority = p.urgency.includes('Very Urgent') ? 3 : p.urgency.includes('Urgent') ? 2 : 1;
+                    return priority > (max.priority || 0) ? { urgency: p.urgency, priority } : max;
+                }, {});
+
+                return `
+                    <div class="consultation-card" onclick="viewDetails(${consultation.id})">
+                        <div class="consultation-header">
+                            <h3>${consultation.patients.length} Patient${consultation.patients.length > 1 ? 's' : ''}</h3>
+                            <span class="urgency-badge ${getUrgencyClass(mostUrgent.urgency)}">
+                                ${mostUrgent.urgency}
+                            </span>
+                        </div>
+                        <div class="consultation-info">
+                            <strong>Patients:</strong> ${consultation.patients.map(p => p.name).join(', ')}<br>
+                            <strong>Doctor Phone:</strong> ${consultation.doctor_phone}<br>
+                            <strong>Submitted:</strong> ${date.toLocaleString()}<br>
+                            ${consultation.attachments.length > 0 ? `<strong>Attachments:</strong> ${consultation.attachments.length} file(s)` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function viewDetails(id) {
+            const consultation = consultations.find(c => c.id === id);
+            if (!consultation) return;
+
+            const date = new Date(consultation.timestamp);
+            const modalBody = document.getElementById('modalBody');
+
+            modalBody.innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    <p><strong>Submitted:</strong> ${date.toLocaleString()}</p>
+                    <p><strong>Doctor Phone:</strong> ${consultation.doctor_phone}</p>
+                </div>
+
+                <h3 style="margin-bottom: 12px;">Patients:</h3>
+                ${consultation.patients.map((patient, index) => `
+                    <div class="card" style="margin-bottom: 12px;">
+                        <h4 style="margin-bottom: 8px;">Patient ${index + 1}: ${patient.name}</h4>
+                        <p style="margin: 4px 0;"><strong>Location:</strong> ${patient.location}</p>
+                        <p style="margin: 4px 0;"><strong>Urgency:</strong> 
+                            <span class="urgency-badge ${getUrgencyClass(patient.urgency)}">${patient.urgency}</span>
+                        </p>
+                        <p style="margin: 8px 0 0;"><strong>Notes:</strong></p>
+                        <p style="white-space: pre-wrap; color: var(--color-text-secondary);">${patient.notes}</p>
+                    </div>
+                `).join('')}
+
+                ${consultation.attachments.length > 0 ? `
+                    <h3 style="margin: 20px 0 12px;">Attachments:</h3>
+                    <div class="card">
+                        ${consultation.attachments.map(file => `
+                            <p style="margin: 4px 0;">📄 ${file}</p>
+                        `).join('')}
+                    </div>
+                ` : ''}
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary btn-block" onclick="closeModal()">Close</button>
+                </div>
+            `;
+
+            document.getElementById('detailModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').classList.remove('active');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderPatientsList();
+            renderFileList();
+        });
+    </script>
+</body>
+</html>
+
