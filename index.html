@@ -693,20 +693,45 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         const SUPABASE_URL = 'https://efmibiyjngmvndzdfgm.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_VvFXxbRto9cyUI3Ni1EMxw_H9Bm2IgE';
         let supabase = null;
+        let supabaseScriptPromise = null;
 
-        try {
-            if (window.supabase && typeof window.supabase.createClient === 'function' && SUPABASE_URL && SUPABASE_KEY) {
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        function loadSupabaseScript() {
+            if (window.supabase && typeof window.supabase.createClient === 'function') {
+                return Promise.resolve();
             }
-        } catch (error) {
-            // Keep app functional in local mode if Supabase init fails.
-            console.error('Supabase initialization failed:', error);
-            supabase = null;
+            if (supabaseScriptPromise) return supabaseScriptPromise;
+
+            supabaseScriptPromise = new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+                script.async = true;
+                script.onload = () => resolve();
+                script.onerror = () => reject(new Error('Failed to load Supabase script'));
+                document.head.appendChild(script);
+            });
+
+            return supabaseScriptPromise;
+        }
+
+        async function ensureSupabaseClient() {
+            if (supabase) return supabase;
+            if (!SUPABASE_URL || !SUPABASE_KEY) return null;
+
+            try {
+                await loadSupabaseScript();
+                if (window.supabase && typeof window.supabase.createClient === 'function') {
+                    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                    return supabase;
+                }
+            } catch (error) {
+                console.error('Supabase initialization failed:', error);
+            }
+
+            return null;
         }
 
         function safeLoadConsultationsFromStorage() {
@@ -857,9 +882,10 @@
                     status: 'pending'
                 };
 
+                const client = await ensureSupabaseClient();
                 let data = null;
-                if (supabase) {
-                    const response = await supabase
+                if (client) {
+                    const response = await client
                         .from('consultations')
                         .insert([consultation])
                         .select();
@@ -876,7 +902,7 @@
                     }));
                 }
                 persistConsultations();
-                alert(supabase
+                alert(client
                     ? '✓ Consultation request submitted successfully!'
                     : '✓ Consultation request submitted locally. Admin dashboard data is available.');
 
@@ -917,9 +943,10 @@
 
         async function loadConsultations() {
             try {
-                if (!supabase) throw new Error('Supabase client unavailable');
+                const client = await ensureSupabaseClient();
+                if (!client) throw new Error('Supabase client unavailable');
 
-                const { data, error } = await supabase
+                const { data, error } = await client
                     .from('consultations')
                     .select('*')
                     .order('timestamp', { ascending: false });
@@ -1069,6 +1096,8 @@
         document.addEventListener('DOMContentLoaded', () => {
             renderPatientsList();
             renderFileList();
+            // Warm up Supabase in background without blocking UI.
+            ensureSupabaseClient();
         });
     </script>
 </body>
