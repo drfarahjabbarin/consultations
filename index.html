@@ -602,7 +602,7 @@
                                 </label>
                             </div>
                             <div class="urgency-option">
-                                <input type="radio" name="urgency" id="urgent" value="Urgent (<24h)">
+                                <input type="radio" name="urgency" id="urgent" value="Urgent (&lt;24h)">
                                 <label for="urgent" class="urgency-label urgent">
                                     Urgent<br><small>&lt;24 hours</small>
                                 </label>
@@ -697,7 +697,9 @@
     <script>
         const SUPABASE_URL = 'https://efmibiyjngmvndzdfgm.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmbWliaXlqbmdtdm5kemRmZ20iLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczNTUwMjkyOSwiZXhwIjoyMDUxMDc4OTI5fQ.sb_publishable_VvFXxbRto9cyUI3Ni1EMxw_H9Bm2IgE';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const supabase = window.supabase && typeof window.supabase.createClient === 'function'
+            ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+            : null;
 
         let patients = [];
         let attachments = [];
@@ -834,12 +836,15 @@
                     status: 'pending'
                 };
 
-                const { data, error } = await supabase
-                    .from('consultations')
-                    .insert([consultation])
-                    .select();
-
-                if (error) throw error;
+                let data = null;
+                if (supabase) {
+                    const response = await supabase
+                        .from('consultations')
+                        .insert([consultation])
+                        .select();
+                    if (response.error) throw response.error;
+                    data = response.data;
+                }
 
                 if (Array.isArray(data) && data.length > 0) {
                     consultations.unshift(normalizeConsultation(data[0]));
@@ -850,7 +855,9 @@
                     }));
                 }
                 persistConsultations();
-                alert('✓ Consultation request submitted successfully!');
+                alert(supabase
+                    ? '✓ Consultation request submitted successfully!'
+                    : '✓ Consultation request submitted locally. Admin dashboard data is available.');
 
                 patients = [];
                 attachments = [];
@@ -888,6 +895,8 @@
 
         async function loadConsultations() {
             try {
+                if (!supabase) throw new Error('Supabase client unavailable');
+
                 const { data, error } = await supabase
                     .from('consultations')
                     .select('*')
