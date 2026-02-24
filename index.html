@@ -693,7 +693,7 @@
         </div>
     </div>
 
-    <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         const SUPABASE_URL = 'https://efmibiyjngmvndzdfgm.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_VvFXxbRto9cyUI3Ni1EMxw_H9Bm2IgE';
@@ -899,7 +899,8 @@
                 });
                 consultations.unshift(fallbackConsultation);
                 persistConsultations();
-                alert('✓ Consultation request submitted locally. Admin dashboard data is still available.');
+                const errorMessage = (error && error.message) ? error.message : 'Unknown error';
+                alert(`Supabase save failed: ${errorMessage}\nSaved locally only.`);
 
                 patients = [];
                 attachments = [];
