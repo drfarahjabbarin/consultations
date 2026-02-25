@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -170,7 +171,7 @@
             transition: all 0.2s;
         }
 
-        .urgency-option input[type="radio"]:checked + .urgency-label {
+        .urgency-option input[type="radio"]:checked+.urgency-label {
             border-color: var(--color-primary);
             background: rgba(2, 132, 199, 0.1);
             color: var(--color-primary);
@@ -180,7 +181,7 @@
             border-color: var(--color-success);
         }
 
-        .urgency-option input[type="radio"]:checked + .urgency-label.elective {
+        .urgency-option input[type="radio"]:checked+.urgency-label.elective {
             border-color: var(--color-success);
             background: rgba(5, 150, 105, 0.1);
             color: var(--color-success);
@@ -190,7 +191,7 @@
             border-color: var(--color-warning);
         }
 
-        .urgency-option input[type="radio"]:checked + .urgency-label.urgent {
+        .urgency-option input[type="radio"]:checked+.urgency-label.urgent {
             border-color: var(--color-warning);
             background: rgba(245, 158, 11, 0.1);
             color: var(--color-warning);
@@ -200,7 +201,7 @@
             border-color: var(--color-danger);
         }
 
-        .urgency-option input[type="radio"]:checked + .urgency-label.very-urgent {
+        .urgency-option input[type="radio"]:checked+.urgency-label.very-urgent {
             border-color: var(--color-danger);
             background: rgba(220, 38, 38, 0.1);
             color: var(--color-danger);
@@ -557,6 +558,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="header">
         <h1>Dr. Farah Jabbarin Consultation App</h1>
@@ -573,7 +575,7 @@
         <div id="requestTab" class="tab-content active">
             <div class="card">
                 <h3 style="margin-bottom: 16px; font-size: 18px;" dir="rtl">معلومات المريض</h3>
-                
+
                 <div id="patientsList"></div>
 
                 <form id="patientForm">
@@ -589,7 +591,8 @@
 
                     <div class="form-group">
                         <label>Medical Condition / Notes</label>
-                        <textarea id="patientNotes" placeholder="Describe the medical condition" rows="4" required></textarea>
+                        <textarea id="patientNotes" placeholder="Describe the medical condition" rows="4"
+                            required></textarea>
                     </div>
 
                     <div class="form-group">
@@ -624,7 +627,7 @@
 
             <div class="card">
                 <h3 style="margin-bottom: 16px; font-size: 18px;" dir="rtl">معلومات التواصل مع الطبيب</h3>
-                
+
                 <div class="form-group">
                     <label>Doctor Phone Number</label>
                     <input type="text" id="doctorPhone" placeholder="Please submit your phone number" required>
@@ -633,7 +636,8 @@
                 <div class="form-group">
                     <label dir="rtl">ارفاق تقارير المريض أو صورة التخطيط (إن وجد)</label>
                     <div class="file-upload" onclick="document.getElementById('fileInput').click()">
-                        <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx" onchange="handleFileSelect(event)">
+                        <input type="file" id="fileInput" multiple accept="image/*,.pdf,.doc,.docx"
+                            onchange="handleFileSelect(event)">
                         <p>📎 Click to upload attachments</p>
                         <small style="color: var(--color-text-secondary);">Images, PDF, DOC files</small>
                     </div>
@@ -675,7 +679,8 @@
                 <div class="filter-chip active" data-filter="all" onclick="filterConsultations('all')">All</div>
                 <div class="filter-chip" data-filter="elective" onclick="filterConsultations('elective')">Elective</div>
                 <div class="filter-chip" data-filter="urgent" onclick="filterConsultations('urgent')">Urgent</div>
-                <div class="filter-chip" data-filter="very-urgent" onclick="filterConsultations('very-urgent')">Very Urgent</div>
+                <div class="filter-chip" data-filter="very-urgent" onclick="filterConsultations('very-urgent')">Very
+                    Urgent</div>
             </div>
 
             <div id="consultationsList" class="consultation-list"></div>
@@ -719,15 +724,21 @@
 
         async function ensureSupabaseClient() {
             if (supabase) return supabase;
-            if (!SUPABASE_URL || !SUPABASE_KEY) return null;
+            if (!SUPABASE_URL || !SUPABASE_KEY) {
+                alert("DEBUG: Missing SUPABASE_URL or SUPABASE_KEY");
+                return null;
+            }
 
             try {
                 await loadSupabaseScript();
                 if (window.supabase && typeof window.supabase.createClient === 'function') {
                     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                     return supabase;
+                } else {
+                    alert("DEBUG: Script loaded but window.supabase is undefined");
                 }
             } catch (error) {
+                alert('DEBUG: Supabase script failed to load from CDN. Error: ' + error.message);
                 console.error('Supabase initialization failed:', error);
             }
 
@@ -768,7 +779,7 @@
         function switchTab(tab) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
+
             if (tab === 'request') {
                 document.querySelector('.tab-btn').classList.add('active');
                 document.getElementById('requestTab').classList.add('active');
@@ -803,7 +814,7 @@
 
         function renderPatientsList() {
             const list = document.getElementById('patientsList');
-            
+
             if (patients.length === 0) {
                 list.innerHTML = '';
                 return;
@@ -837,7 +848,7 @@
 
         function renderFileList() {
             const list = document.getElementById('fileList');
-            
+
             if (attachments.length === 0) {
                 list.innerHTML = '';
                 return;
@@ -896,6 +907,7 @@
                 if (Array.isArray(data) && data.length > 0) {
                     consultations.unshift(normalizeConsultation(data[0]));
                 } else {
+                    alert("DEBUG: Supabase returned empty data on insert. RLS (Row Level Security) block?");
                     consultations.unshift(normalizeConsultation({
                         id: Date.now(),
                         ...consultation
@@ -958,6 +970,7 @@
                 updateStats();
                 renderConsultations();
             } catch (error) {
+                alert('DEBUG: Error in loadConsultations: ' + (error && error.message ? error.message : JSON.stringify(error)));
                 console.error('Error loading consultations:', error);
                 consultations = (safeLoadConsultationsFromStorage())
                     .map(normalizeConsultation)
@@ -969,13 +982,13 @@
 
         function updateStats() {
             const total = consultations.length;
-            const elective = consultations.filter(c => 
+            const elective = consultations.filter(c =>
                 c.patients.some(p => p.urgency.includes('Elective'))
             ).length;
-            const urgent = consultations.filter(c => 
+            const urgent = consultations.filter(c =>
                 c.patients.some(p => p.urgency.includes('Urgent') && !p.urgency.includes('Very'))
             ).length;
-            const veryUrgent = consultations.filter(c => 
+            const veryUrgent = consultations.filter(c =>
                 c.patients.some(p => p.urgency.includes('Very Urgent'))
             ).length;
 
@@ -1002,10 +1015,10 @@
 
         function renderConsultations() {
             const list = document.getElementById('consultationsList');
-            
+
             let filtered = consultations;
             if (currentFilter !== 'all') {
-                filtered = consultations.filter(c => 
+                filtered = consultations.filter(c =>
                     c.patients.some(p => getUrgencyClass(p.urgency) === currentFilter)
                 );
             }
@@ -1101,5 +1114,5 @@
         });
     </script>
 </body>
-</html>
 
+</html>
