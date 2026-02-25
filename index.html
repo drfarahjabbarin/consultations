@@ -701,15 +701,51 @@
 
     <script>
         const SUPABASE_URL = 'https://efmibjyjngrmvndzdfgm.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmbWlianlqbmdybXZuZHpkZmdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NTYzMTAsImV4cCI6MjA4NzUzMjMxMH0.xHNlHqLdxyDPrd4bzIrYoYAECmhTy16u92VlCZaLYk0';
-        let supabase = null;
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmbWlianlqbmdybXZuZHpkZmdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NTYzMTAsImV4cCI6MjA4NzUzMjMxMH0.xHNlHqLdxyDPrd4bzIrYoYAECmhTy16u92VlCZaLYk0';
 
-        async function ensureSupabaseClient() {
-            if (supabase) return supabase;
-            if (!SUPABASE_URL || !SUPABASE_KEY) {
-                alert("DEBUG: Missing SUPABASE_URL or SUPABASE_KEY");
-                return null;
-            }
+// If this is FALSE, we *only* use Supabase (no localStorage saves).
+// Set to TRUE if you want a fallback when Supabase is down.
+const ALLOW_LOCAL_FALLBACK = false;
+
+let supabase = null;
+let supabaseInitErrorShown = false;
+
+function getSupabaseLib() {
+    return window.supabase || window.Supabase || window.supabaseJs || null;
+}
+
+async function ensureSupabaseClient() {
+    if (supabase) return supabase;
+
+    const lib = getSupabaseLib();
+    if (!lib || typeof lib.createClient !== 'function') {
+        console.error('Supabase JS not available on window. Found:', lib);
+
+        if (!supabaseInitErrorShown) {
+            supabaseInitErrorShown = true;
+            alert(
+                "Supabase JS failed to load from the CDN.
+
+" +
+                "Common causes:
+" +
+                "• You opened the file via file:// (Origin = null → CORS issues)
+" +
+                "• An adblocker/network blocked cdn.jsdelivr.net
+
+" +
+                "Fix: run a local server (http://localhost) and allow the CDN."
+            );
+        }
+        return null;
+    }
+
+    supabase = lib.createClient(SUPABASE_URL, SUPABASE_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+    });
+
+    return supabase;
+}
 
             try {
                 if (window.supabase && typeof window.supabase.createClient === 'function') {
@@ -741,12 +777,13 @@
 
         let patients = [];
         let attachments = [];
-        let consultations = safeLoadConsultationsFromStorage();
-        let currentFilter = 'all';
+        let consultations = ALLOW_LOCAL_FALLBACK ? safeLoadConsultationsFromStorage() : [];
+let currentFilter = 'all';
 
         function persistConsultations() {
-            localStorage.setItem('consultations', JSON.stringify(consultations));
-        }
+    if (!ALLOW_LOCAL_FALLBACK) return;
+    localStorage.setItem('consultations', JSON.stringify(consultations));
+}
 
         function normalizeConsultation(raw) {
             return {
@@ -756,6 +793,20 @@
                 attachments: Array.isArray(raw.attachments) ? raw.attachments : []
             };
         }
+
+function escapeJsString(value) {
+    return String(value).replace(/\/g, '\\').replace(/'/g, "\'");
+}
+
+function resetFormState() {
+    patients = [];
+    attachments = [];
+    document.getElementById('patientForm').reset();
+    document.getElementById('doctorPhone').value = '';
+    document.getElementById('fileInput').value = '';
+    renderPatientsList();
+    renderFileList();
+}
 
         function switchTab(tab) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -849,119 +900,129 @@
         }
 
         async function submitConsultation() {
-            const phone = document.getElementById('doctorPhone').value.trim();
+    const phone = document.getElementById('doctorPhone').value.trim();
 
-            if (!phone) {
-                alert('Please enter your phone number');
-                return;
-            }
+    if (!phone) {
+        alert('Please enter your phone number');
+        return;
+    }
 
-            if (patients.length === 0) {
-                alert('Please add at least one patient');
-                return;
-            }
+    if (patients.length === 0) {
+        alert('Please add at least one patient');
+        return;
+    }
 
-            const submitButton = document.querySelector('.btn-success');
-            submitButton.disabled = true;
-            submitButton.textContent = '⏳ Submitting...';
+    const submitButton = document.querySelector('.btn-success');
+    submitButton.disabled = true;
+    submitButton.textContent = '⏳ Submitting...';
 
-            try {
-                const consultation = {
-                    timestamp: new Date().toISOString(),
-                    doctor_phone: phone,
-                    patients: patients,
-                    attachments: attachments.map(f => f.name),
-                    status: 'pending'
-                };
+    const consultation = {
+        timestamp: new Date().toISOString(),
+        doctor_phone: phone,
+        patients: patients,
+        attachments: attachments.map(f => f.name),
+        status: 'pending'
+    };
 
-                const client = await ensureSupabaseClient();
-                let data = null;
-                if (client) {
-                    const response = await client
-                        .from('consultations')
-                        .insert([consultation])
-                        .select();
-                    if (response.error) throw response.error;
-                    data = response.data;
-                }
+    try {
+        const client = await ensureSupabaseClient();
+        if (!client) throw new Error('Supabase client unavailable (library not loaded).');
 
-                if (Array.isArray(data) && data.length > 0) {
-                    consultations.unshift(normalizeConsultation(data[0]));
-                } else {
-                    alert("DEBUG: Supabase returned empty data on insert. RLS (Row Level Security) block?");
-                    consultations.unshift(normalizeConsultation({
-                        id: Date.now(),
-                        ...consultation
-                    }));
-                }
-                persistConsultations();
-                alert(client
-                    ? '✓ Consultation request submitted successfully!'
-                    : '✓ Consultation request submitted locally. Admin dashboard data is available.');
+        const { data, error } = await client
+            .from('consultations')
+            .insert([consultation])
+            .select();
 
-                patients = [];
-                attachments = [];
-                document.getElementById('patientForm').reset();
-                document.getElementById('doctorPhone').value = '';
-                document.getElementById('fileInput').value = '';
-                renderPatientsList();
-                renderFileList();
-            } catch (error) {
-                console.error('Error submitting consultation:', error);
-                const fallbackConsultation = normalizeConsultation({
-                    id: Date.now(),
-                    timestamp: new Date().toISOString(),
-                    doctor_phone: phone,
-                    patients: patients,
-                    attachments: attachments.map(f => f.name),
-                    status: 'pending'
-                });
-                consultations.unshift(fallbackConsultation);
-                persistConsultations();
-                const errorMessage = (error && error.message) ? error.message : 'Unknown error';
-                alert(`Supabase save failed: ${errorMessage}\nSaved locally only.`);
+        if (error) throw error;
 
-                patients = [];
-                attachments = [];
-                document.getElementById('patientForm').reset();
-                document.getElementById('doctorPhone').value = '';
-                document.getElementById('fileInput').value = '';
-                renderPatientsList();
-                renderFileList();
-            } finally {
-                submitButton.disabled = false;
-                submitButton.innerHTML = '✓ Submit Consultation Request';
-            }
+        // Some RLS setups allow INSERT but block SELECT/returning rows.
+        // Treat "no returned rows" as success and just refresh the admin list.
+        if (Array.isArray(data) && data.length > 0) {
+            consultations.unshift(normalizeConsultation(data[0]));
+        } else {
+            await loadConsultations();
         }
 
-        async function loadConsultations() {
-            try {
-                const client = await ensureSupabaseClient();
-                if (!client) throw new Error('Supabase client unavailable');
+        persistConsultations(); // only writes if ALLOW_LOCAL_FALLBACK=true
+        alert('✓ Consultation request submitted successfully!');
+        resetFormState();
+    } catch (error) {
+        console.error('Error submitting consultation:', error);
 
-                const { data, error } = await client
-                    .from('consultations')
-                    .select('*')
-                    .order('timestamp', { ascending: false });
+        const errorMessage = (error && error.message) ? error.message : 'Unknown error';
 
-                if (error) throw error;
+        if (ALLOW_LOCAL_FALLBACK) {
+            const fallbackConsultation = normalizeConsultation({
+                id: (globalThis.crypto && globalThis.crypto.randomUUID) ? globalThis.crypto.randomUUID() : Date.now(),
+                ...consultation
+            });
+            consultations.unshift(fallbackConsultation);
+            persistConsultations();
+            alert(`Supabase save failed: ${errorMessage}
+Saved locally only (fallback is ON).`);
+            resetFormState();
+        } else {
+            alert(
+                `Supabase save failed: ${errorMessage}
 
-                consultations = (data || []).map(normalizeConsultation);
-                persistConsultations();
-                updateStats();
-                renderConsultations();
-            } catch (error) {
-                alert('DEBUG: Error in loadConsultations: ' + (error && error.message ? error.message : JSON.stringify(error)));
-                console.error('Error loading consultations:', error);
-                consultations = (safeLoadConsultationsFromStorage())
-                    .map(normalizeConsultation)
-                    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                updateStats();
-                renderConsultations();
-            }
+` +
+                `Most common causes:
+` +
+                `• RLS policy blocks anon INSERT/SELECT
+` +
+                `• You're running from file:// (CORS)
+` +
+                `• Table/columns don't match (patients/attachments should be jsonb)
+
+` +
+                `Your form was NOT cleared so you can retry after fixing.`
+            );
+        }
+    } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = '✓ Submit Consultation Request';
+    }
+}
+
+async function loadConsultations() {
+    try {
+        const client = await ensureSupabaseClient();
+        if (!client) throw new Error('Supabase client unavailable');
+
+        const { data, error } = await client
+            .from('consultations')
+            .select('*')
+            .order('timestamp', { ascending: false });
+
+        if (error) throw error;
+
+        consultations = (data || []).map(normalizeConsultation);
+
+        // Optional: keep a local backup only when fallback is enabled.
+        persistConsultations();
+
+        updateStats();
+        renderConsultations();
+    } catch (error) {
+        console.error('Error loading consultations:', error);
+
+        if (ALLOW_LOCAL_FALLBACK) {
+            consultations = (safeLoadConsultationsFromStorage())
+                .map(normalizeConsultation)
+                .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        } else {
+            consultations = [];
         }
 
-        function updateStats() {
+        updateStats();
+        renderConsultations();
+
+        const msg = (error && error.message) ? error.message : 'Unknown error';
+        alert(`Failed to load from Supabase: ${msg}`);
+    }
+}
+
+function updateStats() {
             const total = consultations.length;
             const elective = consultations.filter(c =>
                 c.patients.some(p => p.urgency.includes('Elective'))
@@ -1022,7 +1083,7 @@
                 }, { urgency: 'Elective (24-48h)', priority: 1 });
 
                 return `
-                    <div class="consultation-card" onclick="viewDetails(${consultation.id})">
+                    <div class="consultation-card" onclick="viewDetails('${escapeJsString(consultation.id)}')">
                         <div class="consultation-header">
                             <h3>${consultation.patients.length} Patient${consultation.patients.length > 1 ? 's' : ''}</h3>
                             <span class="urgency-badge ${getUrgencyClass(mostUrgent.urgency)}">
@@ -1041,7 +1102,7 @@
         }
 
         function viewDetails(id) {
-            const consultation = consultations.find(c => c.id === id);
+            const consultation = consultations.find(c => String(c.id) === String(id));
             if (!consultation) return;
 
             const date = new Date(consultation.timestamp);
