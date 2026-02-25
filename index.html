@@ -557,6 +557,7 @@
             direction: rtl;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -702,25 +703,6 @@
         const SUPABASE_URL = 'https://efmibjyjngrmvndzdfgm.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmbWlianlqbmdybXZuZHpkZmdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NTYzMTAsImV4cCI6MjA4NzUzMjMxMH0.xHNlHqLdxyDPrd4bzIrYoYAECmhTy16u92VlCZaLYk0';
         let supabase = null;
-        let supabaseScriptPromise = null;
-
-        function loadSupabaseScript() {
-            if (window.supabase && typeof window.supabase.createClient === 'function') {
-                return Promise.resolve();
-            }
-            if (supabaseScriptPromise) return supabaseScriptPromise;
-
-            supabaseScriptPromise = new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-                script.async = true;
-                script.onload = () => resolve();
-                script.onerror = () => reject(new Error('Failed to load Supabase script'));
-                document.head.appendChild(script);
-            });
-
-            return supabaseScriptPromise;
-        }
 
         async function ensureSupabaseClient() {
             if (supabase) return supabase;
@@ -730,15 +712,14 @@
             }
 
             try {
-                await loadSupabaseScript();
                 if (window.supabase && typeof window.supabase.createClient === 'function') {
                     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                     return supabase;
                 } else {
-                    alert("DEBUG: Script loaded but window.supabase is undefined");
+                    alert("DEBUG: window.supabase is undefined. The CDN script might be blocked by an adblocker or the network!");
                 }
             } catch (error) {
-                alert('DEBUG: Supabase script failed to load from CDN. Error: ' + error.message);
+                alert('DEBUG: Failed to create Supabase client. Error: ' + error.message);
                 console.error('Supabase initialization failed:', error);
             }
 
